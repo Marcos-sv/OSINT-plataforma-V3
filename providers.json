@@ -1,0 +1,523 @@
+{
+  "providers": [
+    {
+      "id": "duckduckgo",
+      "name": "DuckDuckGo",
+      "enabled": true,
+      "kind": "ddgs",
+      "backend": "duckduckgo",
+      "modes": [
+        "nome",
+        "cpf",
+        "nome+cpf"
+      ],
+      "queries": {
+        "nome": [
+          "\"{name}\"",
+          "\"{name}\" site:linkedin.com/in OR site:github.com OR site:gitlab.com",
+          "\"{name}\" site:gov.br OR site:edu.br",
+          "\"{name}\" filetype:pdf",
+          "\"{name}\" currículo OR curriculum OR bio OR contato"
+        ],
+        "cpf": [
+          "\"{cpf_formatted}\"",
+          "\"{cpf}\"",
+          "\"{cpf_formatted}\" site:gov.br",
+          "\"{cpf_formatted}\" filetype:pdf"
+        ],
+        "nome+cpf": [
+          "\"{name}\" \"{cpf_formatted}\"",
+          "\"{name}\" \"{cpf}\"",
+          "\"{name}\" \"{cpf_formatted}\" site:gov.br",
+          "\"{name}\" \"{cpf_formatted}\" filetype:pdf"
+        ]
+      }
+    },
+    {
+      "id": "bing",
+      "name": "Bing",
+      "enabled": true,
+      "kind": "ddgs",
+      "backend": "bing",
+      "modes": [
+        "nome",
+        "cpf",
+        "nome+cpf"
+      ],
+      "queries": {
+        "nome": [
+          "\"{name}\"",
+          "\"{name}\" filetype:pdf",
+          "\"{name}\" site:gov.br OR site:edu.br"
+        ],
+        "cpf": [
+          "\"{cpf_formatted}\"",
+          "\"{cpf}\""
+        ],
+        "nome+cpf": [
+          "\"{name}\" \"{cpf_formatted}\"",
+          "\"{name}\" \"{cpf}\""
+        ]
+      }
+    },
+    {
+      "id": "startpage",
+      "name": "Startpage",
+      "enabled": true,
+      "kind": "ddgs",
+      "backend": "startpage",
+      "modes": [
+        "nome",
+        "cpf",
+        "nome+cpf"
+      ],
+      "queries": {
+        "nome": [
+          "\"{name}\"",
+          "\"{name}\" filetype:pdf"
+        ],
+        "cpf": [
+          "\"{cpf_formatted}\"",
+          "\"{cpf}\""
+        ],
+        "nome+cpf": [
+          "\"{name}\" \"{cpf_formatted}\""
+        ]
+      }
+    },
+    {
+      "id": "github",
+      "name": "GitHub",
+      "enabled": true,
+      "kind": "json_api",
+      "modes": [
+        "nome"
+      ],
+      "url": "https://api.github.com/search/users",
+      "params": {
+        "q": "{name} in:fullname",
+        "per_page": 15
+      },
+      "headers": {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2026-03-10",
+        "Authorization": "Bearer ${GITHUB_TOKEN}"
+      },
+      "items_path": "items",
+      "detail": {
+        "url": "https://api.github.com/users/{login}",
+        "headers": {
+          "Accept": "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2026-03-10",
+          "Authorization": "Bearer ${GITHUB_TOKEN}"
+        },
+        "merge": true
+      },
+      "match": {
+        "name": {
+          "fields": [
+            "name"
+          ],
+          "mode": "equal"
+        }
+      },
+      "title_field": "name",
+      "url_field": "html_url",
+      "keep_fields": [
+        "login",
+        "name",
+        "company",
+        "blog",
+        "location",
+        "email",
+        "twitter_username",
+        "bio",
+        "public_repos",
+        "public_gists",
+        "followers",
+        "following",
+        "created_at",
+        "updated_at",
+        "html_url"
+      ]
+    },
+    {
+      "id": "gitlab",
+      "name": "GitLab",
+      "enabled": true,
+      "kind": "json_api",
+      "modes": [
+        "nome"
+      ],
+      "url": "https://gitlab.com/api/v4/users",
+      "params": {
+        "search": "{name}",
+        "per_page": 30,
+        "active": true,
+        "without_project_bots": true
+      },
+      "items_path": "$",
+      "match": {
+        "name": {
+          "fields": [
+            "name"
+          ],
+          "mode": "equal"
+        }
+      },
+      "title_field": "name",
+      "url_field": "web_url",
+      "keep_fields": [
+        "id",
+        "username",
+        "name",
+        "state",
+        "avatar_url",
+        "web_url"
+      ]
+    },
+    {
+      "id": "stackoverflow",
+      "name": "Stack Overflow",
+      "enabled": true,
+      "kind": "json_api",
+      "modes": [
+        "nome"
+      ],
+      "url": "https://api.stackexchange.com/2.3/users",
+      "params": {
+        "site": "stackoverflow",
+        "inname": "{name}",
+        "pagesize": 100
+      },
+      "items_path": "items",
+      "match": {
+        "name": {
+          "fields": [
+            "display_name"
+          ],
+          "mode": "equal"
+        }
+      },
+      "title_field": "display_name",
+      "url_field": "link",
+      "keep_fields": [
+        "user_id",
+        "display_name",
+        "reputation",
+        "location",
+        "website_url",
+        "link",
+        "profile_image",
+        "creation_date",
+        "last_access_date",
+        "answer_count",
+        "question_count"
+      ]
+    },
+    {
+      "id": "openalex",
+      "name": "OpenAlex",
+      "enabled": true,
+      "kind": "json_api",
+      "modes": [
+        "nome"
+      ],
+      "url": "https://api.openalex.org/authors",
+      "params": {
+        "search": "{name}",
+        "per-page": 25
+      },
+      "items_path": "results",
+      "match": {
+        "name": {
+          "fields": [
+            "display_name"
+          ],
+          "mode": "equal"
+        }
+      },
+      "title_field": "display_name",
+      "url_field": "id",
+      "keep_fields": [
+        "id",
+        "display_name",
+        "orcid",
+        "works_count",
+        "cited_by_count",
+        "last_known_institutions",
+        "affiliations",
+        "summary_stats",
+        "ids"
+      ]
+    },
+    {
+      "id": "wikipedia_pt",
+      "name": "Wikipedia PT",
+      "enabled": true,
+      "kind": "json_api",
+      "modes": [
+        "nome"
+      ],
+      "url": "https://pt.wikipedia.org/w/api.php",
+      "params": {
+        "action": "query",
+        "list": "search",
+        "srsearch": "\"{name}\"",
+        "srlimit": 20,
+        "format": "json",
+        "utf8": 1
+      },
+      "items_path": "query.search",
+      "match": {
+        "name": {
+          "fields": [
+            "title",
+            "snippet"
+          ],
+          "mode": "contains"
+        }
+      },
+      "title_field": "title",
+      "url_template": "https://pt.wikipedia.org/wiki/{title_slug}",
+      "keep_fields": [
+        "pageid",
+        "title",
+        "snippet",
+        "wordcount",
+        "timestamp"
+      ]
+    },
+    {
+      "id": "wikidata_pt",
+      "name": "Wikidata PT",
+      "enabled": true,
+      "kind": "json_api",
+      "modes": [
+        "nome"
+      ],
+      "url": "https://www.wikidata.org/w/api.php",
+      "params": {
+        "action": "wbsearchentities",
+        "search": "{name}",
+        "language": "pt",
+        "uselang": "pt",
+        "type": "item",
+        "limit": 25,
+        "format": "json"
+      },
+      "items_path": "search",
+      "match": {
+        "name": {
+          "fields": [
+            "label"
+          ],
+          "mode": "equal"
+        }
+      },
+      "title_field": "label",
+      "url_field": "concepturi",
+      "keep_fields": [
+        "id",
+        "label",
+        "description",
+        "concepturi",
+        "url",
+        "match"
+      ]
+    },
+    {
+      "id": "gov_portal_transparencia",
+      "name": "Portal da Transparencia - Governo Federal",
+      "enabled": true,
+      "kind": "ddgs",
+      "backend": "duckduckgo",
+      "modes": [
+        "nome",
+        "cpf",
+        "nome+cpf"
+      ],
+      "queries": {
+        "nome": [
+          "\"{name}\" site:portaldatransparencia.gov.br/pessoa-fisica",
+          "\"{name}\" site:portaldatransparencia.gov.br/busca/pessoa-fisica",
+          "\"{name}\" site:portaldatransparencia.gov.br/viagens",
+          "\"{name}\" site:portaldatransparencia.gov.br/despesas"
+        ],
+        "cpf": [
+          "\"{cpf_formatted}\" site:portaldatransparencia.gov.br",
+          "\"{cpf}\" site:portaldatransparencia.gov.br"
+        ],
+        "nome+cpf": [
+          "\"{name}\" \"{cpf_formatted}\" site:portaldatransparencia.gov.br",
+          "\"{name}\" \"{cpf}\" site:portaldatransparencia.gov.br"
+        ]
+      }
+    },
+    {
+      "id": "gov_dou",
+      "name": "Diario Oficial da Uniao - Imprensa Nacional",
+      "enabled": true,
+      "kind": "ddgs",
+      "backend": "duckduckgo",
+      "modes": [
+        "nome",
+        "cpf",
+        "nome+cpf"
+      ],
+      "queries": {
+        "nome": [
+          "\"{name}\" site:in.gov.br/web/dou",
+          "\"{name}\" site:in.gov.br/en/web/dou",
+          "\"{name}\" site:pesquisa.in.gov.br"
+        ],
+        "cpf": [
+          "\"{cpf_formatted}\" site:in.gov.br",
+          "\"{cpf}\" site:in.gov.br",
+          "\"{cpf_formatted}\" site:pesquisa.in.gov.br"
+        ],
+        "nome+cpf": [
+          "\"{name}\" \"{cpf_formatted}\" site:in.gov.br",
+          "\"{name}\" \"{cpf}\" site:in.gov.br",
+          "\"{name}\" \"{cpf_formatted}\" site:pesquisa.in.gov.br"
+        ]
+      }
+    },
+    {
+      "id": "gov_tse",
+      "name": "TSE - Candidaturas e Dados Abertos",
+      "enabled": true,
+      "kind": "ddgs",
+      "backend": "duckduckgo",
+      "modes": [
+        "nome",
+        "cpf",
+        "nome+cpf"
+      ],
+      "queries": {
+        "nome": [
+          "\"{name}\" site:divulgacandcontas.tse.jus.br",
+          "\"{name}\" site:dadosabertos.tse.jus.br",
+          "\"{name}\" site:tse.jus.br"
+        ],
+        "cpf": [
+          "\"{cpf_formatted}\" site:tse.jus.br",
+          "\"{cpf}\" site:dadosabertos.tse.jus.br",
+          "\"{cpf}\" site:divulgacandcontas.tse.jus.br"
+        ],
+        "nome+cpf": [
+          "\"{name}\" \"{cpf_formatted}\" site:tse.jus.br",
+          "\"{name}\" \"{cpf}\" site:dadosabertos.tse.jus.br",
+          "\"{name}\" \"{cpf}\" site:divulgacandcontas.tse.jus.br"
+        ]
+      }
+    },
+    {
+      "id": "gov_tcu",
+      "name": "TCU - Pesquisa Integrada",
+      "enabled": true,
+      "kind": "ddgs",
+      "backend": "duckduckgo",
+      "modes": [
+        "nome",
+        "cpf",
+        "nome+cpf"
+      ],
+      "queries": {
+        "nome": [
+          "\"{name}\" site:pesquisa.apps.tcu.gov.br/pesquisa",
+          "\"{name}\" site:pesquisa.apps.tcu.gov.br/documento",
+          "\"{name}\" site:pesquisa.apps.tcu.gov.br/doc"
+        ],
+        "cpf": [
+          "\"{cpf_formatted}\" site:pesquisa.apps.tcu.gov.br",
+          "\"{cpf}\" site:pesquisa.apps.tcu.gov.br"
+        ],
+        "nome+cpf": [
+          "\"{name}\" \"{cpf_formatted}\" site:pesquisa.apps.tcu.gov.br",
+          "\"{name}\" \"{cpf}\" site:pesquisa.apps.tcu.gov.br"
+        ]
+      }
+    },
+    {
+      "id": "ddgs_leaks",
+      "name": "DuckDuckGo (dorks de vazamento)",
+      "enabled": true,
+      "kind": "ddgs",
+      "backend": "duckduckgo",
+      "modes": [
+        "nome",
+        "cpf",
+        "nome+cpf"
+      ],
+      "queries": {
+        "nome": [
+          "\"{name}\" \"senha\"",
+          "\"{name}\" \"vazamento\" OR \"leak\" OR \"dump\"",
+          "\"{name}\" site:pastebin.com OR site:gist.github.com",
+          "\"{name}\" filetype:csv OR filetype:txt OR filetype:xlsx"
+        ],
+        "cpf": [
+          "\"{cpf_formatted}\"",
+          "\"{cpf_formatted}\" site:pastebin.com OR site:gist.github.com",
+          "\"{cpf}\"",
+          "\"{cpf}\" filetype:txt OR filetype:csv"
+        ],
+        "nome+cpf": [
+          "\"{name}\" \"{cpf_formatted}\"",
+          "\"{name}\" \"{cpf}\"",
+          "\"{name}\" \"{cpf_formatted}\" site:pastebin.com OR site:gist.github.com"
+        ]
+      }
+    },
+    {
+      "id": "grepapp",
+      "name": "grep.app (código público GitHub)",
+      "enabled": true,
+      "kind": "json_api",
+      "modes": [
+        "cpf",
+        "nome+cpf"
+      ],
+      "url": "https://grep.app/api/search",
+      "params_by_mode": {
+        "cpf": [
+          {
+            "q": "{cpf_formatted}",
+            "regexp": false
+          },
+          {
+            "q": "{cpf}",
+            "regexp": false
+          }
+        ],
+        "nome+cpf": [
+          {
+            "q": "{cpf_formatted}",
+            "regexp": false
+          },
+          {
+            "q": "{cpf}",
+            "regexp": false
+          }
+        ]
+      },
+      "items_path": "hits.hits",
+      "match": {
+        "cpf": {
+          "fields": [],
+          "mode": "contains"
+        }
+      },
+      "title_field": "repo.raw",
+      "url_template": "https://grep.app/search?q={cpf_formatted_url}",
+      "keep_fields": [
+        "repo.raw",
+        "path.raw",
+        "content.snippet",
+        "content.raw"
+      ],
+      "max_field_chars": 500
+    }
+  ]
+}

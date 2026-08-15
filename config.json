@@ -1,0 +1,35 @@
+{
+  "timeout": 15,
+  "workers": 8,
+  "providers": [
+    {
+      "name": "escavador",
+      "enabled": false,
+      "type": "json_api",
+      "url": "COLOQUE_AQUI_ENDPOINT_OFICIAL",
+      "method": "GET",
+      "params": {
+        "q": "{nome}"
+      },
+      "headers": {
+        "Authorization": "Bearer ${ESCAVADOR_TOKEN}"
+      },
+      "send_cpf": false
+    },
+    {
+      "name": "provedor_empresarial",
+      "enabled": false,
+      "type": "json_api",
+      "url": "COLOQUE_AQUI_ENDPOINT_AUTORIZADO",
+      "method": "GET",
+      "params": {
+        "nome": "{nome}",
+        "cpf": "{cpf}"
+      },
+      "headers": {
+        "Authorization": "Bearer ${EMPRESA_TOKEN}"
+      },
+      "send_cpf": true
+    }
+  ]
+}
