@@ -1,4 +1,4 @@
-# OSINT Governo
+# OSINT-plataforma (prototipo da versão 3)
 
 Sistema de busca OSINT em fontes públicas e governamentais, com suporte a consultas por:
 
