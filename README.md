@@ -13,8 +13,11 @@ O sistema utiliza o arquivo `providers.json` para definir as fontes consultadas.
 
 Antes de executar buscas reais, rode:
 
-```powershell
+```powershell windows
 .\.venv-1\Scripts\python.exe .\osint.py --providers-file .\providers.json --self-test
+
+powershell linux
+./.venv-1/bin/python ./osint.py --providers-file ./providers.json --self-test
 ```
 
 O autoteste verifica o funcionamento básico do programa, incluindo carregamento dos providers e filtros de nome/CPF.
