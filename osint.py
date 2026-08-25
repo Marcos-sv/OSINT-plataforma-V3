@@ -123,6 +123,104 @@ def exact_name_equal(name: str, candidate: str) -> bool:
     return bool(normalize_text(name)) and normalize_text(name) == normalize_text(candidate)
 
 
+def is_social_url(url: str | None) -> bool:
+    if not url:
+        return False
+    try:
+        host = urlparse(url).netloc.lower().removeprefix("www.")
+    except Exception:
+        return False
+    return host in SOCIAL_HOSTS or any(host.endswith("." + social) for social in SOCIAL_HOSTS)
+
+
+def social_name_match(name: str, text: str, url: str | None = None) -> bool:
+    """Filtro mais flexível para redes sociais sem liberar nomes totalmente diferentes.
+
+    Aceita nome completo, primeiro+último nome e variações plausíveis de username
+    derivadas do nome informado.
+    """
+    target = normalize_text(name)
+    haystack = normalize_text(text)
+    if not target:
+        return False
+    if exact_name_match(name, text):
+        return True
+
+    parts = target.split()
+    if len(parts) < 2:
+        return False
+
+    first = parts[0]
+    last = parts[-1]
+    hay_tokens = set(haystack.split())
+
+    # Em perfis sociais é muito comum aparecer apenas nome + sobrenome.
+    if first in hay_tokens and last in hay_tokens:
+        return True
+
+    # Também considera o identificador do perfil, mas compara o username inteiro
+    # para evitar falso positivo por substring (ex.: marcosv != marcosvictor).
+    middle = parts[1] if len(parts) > 2 else ""
+    initials = "".join(part[0] for part in parts if part)
+    username_candidates = {
+        first + last,
+        first + last[0],
+        first[0] + last,
+        last + first,
+        initials,
+    }
+    if middle:
+        username_candidates.update({
+            first + middle,
+            first + middle + last,
+            first[0] + middle[0] + last,
+            first + "".join(part[0] for part in parts[1:]),
+        })
+
+    handles: set[str] = set()
+    for handle in re.findall(r"(?<![\w.])@([A-Za-z0-9._-]{3,64})", text or ""):
+        handles.add(re.sub(r"[^a-z0-9]", "", normalize_text(handle)))
+
+    if url:
+        try:
+            parsed = urlparse(url)
+            segments = [segment for segment in parsed.path.split("/") if segment]
+            if segments:
+                handles.add(re.sub(r"[^a-z0-9]", "", normalize_text(segments[0])))
+        except Exception:
+            pass
+
+    return any(
+        len(candidate) >= 4 and candidate == handle
+        for candidate in username_candidates
+        for handle in handles
+        if handle
+    )
+
+
+def criteria_match_for_url(
+    criteria: SearchCriteria,
+    text: str,
+    url: str | None,
+) -> tuple[bool, bool, bool]:
+    """Aplica filtro social flexível apenas a URLs de redes sociais.
+
+    Em redes sociais, CPF não é exigido porque normalmente não é publicado no
+    perfil. O resultado continua marcado com matched_cpf=False quando houver CPF
+    na consulta e ele não aparecer, evitando fingir que houve confirmação por CPF.
+    """
+    if not is_social_url(url):
+        return criteria_match(criteria, text)
+
+    name_ok = True if not criteria.name else social_name_match(criteria.name, text, url)
+    cpf_ok = True if not criteria.cpf else exact_cpf_match(criteria.cpf, text)
+
+    # Para perfil social, a aceitação é baseada no nome/username. CPF, quando
+    # informado, permanece apenas como indicador adicional de confirmação.
+    accepted = name_ok if criteria.name else cpf_ok
+    return name_ok, cpf_ok, accepted
+
+
 def normalize_cpf(value: str | None) -> str | None:
     if not value:
         return None
@@ -411,7 +509,9 @@ def ddgs_provider(provider: dict[str, Any], criteria: SearchCriteria, args: argp
                     continue
                 title = clean_html_text(item.get("title"))
                 snippet = clean_html_text(item.get("body") or item.get("snippet"))
-                matched_name, matched_cpf, matched_all = criteria_match(criteria, f"{title} {snippet}")
+                matched_name, matched_cpf, matched_all = criteria_match_for_url(
+                    criteria, f"{title} {snippet}", url
+                )
                 if not matched_all:
                     continue
                 url = canonical_url(url)
@@ -538,6 +638,169 @@ def json_api_provider(provider: dict[str, Any], criteria: SearchCriteria, args: 
         f"{len(records)} resultado(s) confirmado(s)", records, errors
     )
 
+# ─────────────────────────────────────────────────────────
+# Provider: username_enum — busca por variações de username
+# em redes sociais a partir do nome completo
+# ─────────────────────────────────────────────────────────
+
+def generate_username_variations(name: str) -> list[str]:
+    """Gera variações de username a partir de um nome completo."""
+    # Normaliza: remove acentos, lower case, remove caracteres especiais
+    normalized = unicodedata.normalize("NFKD", name)
+    normalized = "".join(c for c in normalized if not unicodedata.combining(c))
+    normalized = re.sub(r"[^a-zA-Z0-9\s]", "", normalized)
+    parts = normalized.lower().split()
+
+    if len(parts) < 2:
+        return []
+
+    first = parts[0]
+    last = parts[-1]
+    middle = parts[1] if len(parts) > 2 else ""
+
+    variations: set[str] = set()
+
+    # Padrões básicos com nome e sobrenome
+    variations.add(f"{first}.{last}")
+    variations.add(f"{first}_{last}")
+    variations.add(f"{first}{last}")
+    variations.add(f"{first}.{last[0]}")
+    variations.add(f"{first}_{last[0]}")
+    variations.add(f"{first}{last[0]}")
+    variations.add(f"{first[0]}.{last}")
+    variations.add(f"{first[0]}_{last}")
+    variations.add(f"{first[0]}{last}")
+    variations.add(f"{first[0]}.{last[0]}")
+    variations.add(f"{first[0]}_{last[0]}")
+    variations.add(f"{first[0]}{last[0]}")
+    variations.add(last)
+    variations.add(first)
+
+    # Padrões com nome do meio (se houver)
+    if middle:
+        variations.add(f"{first}.{middle}.{last}")
+        variations.add(f"{first}_{middle}_{last}")
+        variations.add(f"{first}{middle}{last}")
+        variations.add(f"{first[0]}.{middle[0]}.{last}")
+        variations.add(f"{first[0]}_{middle[0]}_{last}")
+        variations.add(f"{first[0]}{middle[0]}{last}")
+        variations.add(f"{first}.{middle}")
+        variations.add(f"{first}{middle}")
+        variations.add(f"{middle}.{last}")
+        variations.add(f"{middle}_{last}")
+        variations.add(f"{middle}{last}")
+
+    # Ordem inversa
+    variations.add(f"{last}.{first}")
+    variations.add(f"{last}_{first}")
+    variations.add(f"{last}{first}")
+    if middle:
+        variations.add(f"{last}.{first[0]}{middle[0]}")
+        variations.add(f"{last}.{middle}.{first}")
+
+    # Apelido composto curto
+    variations.add(f"{first[0]}{middle[0]}{last[0]}" if middle else f"{first[0]}{last[0]}")
+
+    # Remove variações muito curtas ou vazias
+    result: set[str] = set()
+    for v in variations:
+        v = re.sub(r"\s+", "", v)
+        if len(v) >= 3:
+            result.add(v)
+
+    return sorted(result)
+
+
+def username_enum_provider(
+    provider: dict[str, Any],
+    criteria: SearchCriteria,
+    args: argparse.Namespace,
+) -> ProviderResult:
+    provider_id = provider["id"]
+    provider_name = provider.get("name", provider_id)
+
+    if not criteria.name:
+        return ProviderResult(
+            provider_id, provider_name, "username_enum", False,
+            "requer nome", [], ["nome não informado"],
+        )
+
+    variations = generate_username_variations(criteria.name)
+    if not variations:
+        return ProviderResult(
+            provider_id, provider_name, "username_enum", True,
+            "sem variações geradas para o nome informado", [], [],
+        )
+
+    url_template = provider.get("url_template", "")
+    check_type = provider.get("check_type", "status_code")  # status_code | not_found | redirect
+    expected_status = provider.get("expected_status", 200)
+
+    records: list[ProviderRecord] = []
+    errors: list[str] = []
+    seen_urls: set[str] = set()
+
+    for username in variations:
+        # Constrói o contexto com a variação de username
+        ctx = {
+            "username": username,
+            "username_url": quote(username, safe=""),
+            "username_slug": quote(username.replace(" ", "_"), safe="_-"),
+        }
+        full_context = template_context(criteria, ctx)
+        url = render_template(url_template, full_context)
+
+        if url in seen_urls:
+            continue
+        seen_urls.add(url)
+
+        try:
+            r = requests.get(
+                url,
+                headers={"User-Agent": USER_AGENT},
+                timeout=args.timeout,
+                allow_redirects=False,
+            )
+
+            if check_type == "status_code":
+                found = r.status_code == expected_status
+            elif check_type == "not_found":
+                # Perfil existe quando o status NÃO é o de "não encontrado"
+                found = r.status_code != expected_status
+            elif check_type == "redirect":
+                found = 300 <= r.status_code < 400
+            else:
+                found = r.status_code == expected_status
+
+            if found:
+                records.append(ProviderRecord(
+                    provider=provider_id,
+                    provider_name=provider_name,
+                    title=f"@{username} em {provider_name}",
+                    url=url,
+                    data={
+                        "username": username,
+                        "profile_url": url,
+                        "http_status": r.status_code,
+                        "variation_tested": username,
+                    },
+                    matched_name=True,
+                    matched_cpf=False,
+                ))
+        except Exception as exc:
+            errors.append(f"{username}: {str(exc)[:200]}")
+
+        time.sleep(0.25)  # rate limiting leve
+
+    status_msg = (
+        f"{len(records)} perfil(is) encontrado(s) "
+        f"em {len(variations)} variações testadas"
+    )
+    return ProviderResult(
+        provider_id, provider_name, "username_enum", True,
+        status_msg, records, errors,
+    )
+
 
 def execute_provider(provider: dict[str, Any], criteria: SearchCriteria, args: argparse.Namespace) -> ProviderResult:
     kind = provider.get("kind")
@@ -545,6 +808,8 @@ def execute_provider(provider: dict[str, Any], criteria: SearchCriteria, args: a
         return ddgs_provider(provider, criteria, args)
     if kind == "json_api":
         return json_api_provider(provider, criteria, args)
+    if kind == "username_enum":
+        return username_enum_provider(provider, criteria, args)
     return ProviderResult(
         provider.get("id", "?"), provider.get("name", provider.get("id", "?")),
         str(kind), False, "kind não suportado", [], [f"kind={kind}"]
@@ -596,7 +861,7 @@ def fetch_page(url: str, criteria: SearchCriteria, timeout: int) -> PageInfo:
         description = desc_node.get("content", "").strip() if desc_node else None
         text = soup.get_text(" ", strip=True)
         searchable = " ".join(x for x in (title or "", description or "", text[:250_000]) if x)
-        matched_name, matched_cpf, matched_all = criteria_match(criteria, searchable)
+        matched_name, matched_cpf, matched_all = criteria_match_for_url(criteria, searchable, url)
 
         emails: set[str] = set()
         phones: set[str] = set()
@@ -1140,7 +1405,7 @@ def main() -> int:
             "cpf_informado": bool(cpf),
             "executado_em_utc": datetime.now(timezone.utc).isoformat(),
             "providers_file": str(providers_path),
-            "escopo": "fontes públicas + verificadores gratuitos de vazamento (HIBP/Proxynova Comb/EmailRep); sem CAPTCHA/bypass e sem bases pagas",
+            "escopo": "fontes públicas + verificadores de vazamento",
         },
         "buscas": searches,
         "vazamentos": vazamentos,

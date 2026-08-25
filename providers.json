@@ -518,6 +518,116 @@
         "content.raw"
       ],
       "max_field_chars": 500
+    },
+    {
+      "id": "instagram_enum",
+      "name": "Instagram",
+      "modes": ["nome"],
+      "kind": "username_enum",
+      "enabled": true,
+      "url_template": "https://www.instagram.com/{username_url}/",
+      "check_type": "status_code",
+      "expected_status": 200
+    },
+    {
+      "id": "github_enum",
+      "name": "GitHub",
+      "modes": ["nome"],
+      "kind": "username_enum",
+      "enabled": true,
+      "url_template": "https://github.com/{username_url}",
+      "check_type": "not_found",
+      "expected_status": 404
+    },
+    {
+      "id": "gitlab_enum",
+      "name": "GitLab",
+      "modes": ["nome"],
+      "kind": "username_enum",
+      "enabled": true,
+      "url_template": "https://gitlab.com/{username_url}",
+      "check_type": "status_code",
+      "expected_status": 200
+    },
+    {
+      "id": "twitter_enum",
+      "name": "Twitter/X",
+      "modes": ["nome"],
+      "kind": "username_enum",
+      "enabled": true,
+      "url_template": "https://x.com/{username_url}",
+      "check_type": "not_found",
+      "expected_status": 404
+    },
+    {
+      "id": "linkedin_enum",
+      "name": "LinkedIn",
+      "modes": ["nome"],
+      "kind": "username_enum",
+      "enabled": true,
+      "url_template": "https://www.linkedin.com/in/{username_url}",
+      "check_type": "redirect",
+      "expected_status": 302
+    },
+    {
+      "id": "facebook_enum",
+      "name": "Facebook",
+      "modes": ["nome"],
+      "kind": "username_enum",
+      "enabled": true,
+      "url_template": "https://www.facebook.com/{username_url}",
+      "check_type": "redirect",
+      "expected_status": 302
+    },
+    {
+      "id": "tiktok_enum",
+      "name": "TikTok",
+      "modes": ["nome"],
+      "kind": "username_enum",
+      "enabled": true,
+      "url_template": "https://www.tiktok.com/@{username_url}",
+      "check_type": "redirect",
+      "expected_status": 302
+    },
+    {
+      "id": "youtube_enum",
+      "name": "YouTube",
+      "modes": ["nome"],
+      "kind": "username_enum",
+      "enabled": true,
+      "url_template": "https://www.youtube.com/@{username_url}",
+      "check_type": "not_found",
+      "expected_status": 404
+    },
+    {
+      "id": "stackoverflow_enum",
+      "name": "Stack Overflow",
+      "modes": ["nome"],
+      "kind": "username_enum",
+      "enabled": true,
+      "url_template": "https://stackoverflow.com/users/{username_url}",
+      "check_type": "status_code",
+      "expected_status": 200
+    },
+    {
+      "id": "reddit_enum",
+      "name": "Reddit",
+      "modes": ["nome"],
+      "kind": "username_enum",
+      "enabled": true,
+      "url_template": "https://www.reddit.com/user/{username_url}",
+      "check_type": "not_found",
+      "expected_status": 404
+    },
+    {
+      "id": "pinterest_enum",
+      "name": "Pinterest",
+      "modes": ["nome"],
+      "kind": "username_enum",
+      "enabled": true,
+      "url_template": "https://www.pinterest.com/{username_url}",
+      "check_type": "not_found",
+      "expected_status": 404
     }
   ]
 }
