@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8">
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1"
@@ -22,10 +23,12 @@
 
     <header>
         <h1>OSINT Plataforma</h1>
+
         <p>
             Escolha a ferramenta e execute a consulta.
         </p>
     </header>
+
 
     <nav
         class="tabs"
@@ -46,7 +49,17 @@
             Maigret
         </button>
 
+        <button
+            class="tab"
+            data-tab="facecheck"
+        >
+            FaceCheck
+        </button>
+
     </nav>
+
+
+    <!-- OSINT -->
 
     <section
         id="osint"
@@ -85,6 +98,9 @@
 
     </section>
 
+
+    <!-- MAIGRET -->
+
     <section
         id="maigret"
         class="panel"
@@ -112,6 +128,65 @@
 
     </section>
 
+
+    <!-- FACECHECK -->
+
+    <section
+        id="facecheck"
+        class="panel"
+    >
+
+        <h2>Busca por imagem</h2>
+
+        <p class="facecheck-description">
+            Envie uma imagem contendo o rosto da pessoa.
+        </p>
+
+        <form
+            id="facecheck-form"
+            enctype="multipart/form-data"
+        >
+
+            <label>
+                Imagem
+
+                <input
+                    id="facecheck-image"
+                    name="imagem"
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                >
+            </label>
+
+
+            <div class="facecheck-preview-container">
+
+                <img
+                    id="facecheck-preview"
+                    alt="Pré-visualização da imagem"
+                >
+
+            </div>
+
+
+            <button type="submit">
+                Preparar imagem
+            </button>
+
+        </form>
+
+
+        <p class="facecheck-info">
+            Nesta etapa a imagem será apenas armazenada.
+            O sistema de melhoria e a busca no FaceCheck.ID
+            serão integrados posteriormente.
+        </p>
+
+    </section>
+
+
+    <!-- RESULTADOS -->
+
     <section class="results">
 
         <div class="result-header">
@@ -132,7 +207,10 @@
 
 </main>
 
-<script src="{{ url_for('static', filename='app.js') }}"></script>
+
+<script
+    src="{{ url_for('static', filename='app.js') }}"
+></script>
 
 </body>
 </html>

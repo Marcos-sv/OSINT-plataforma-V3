@@ -13,6 +13,12 @@ const outputEl =
 const downloadsEl =
     document.getElementById('downloads');
 
+const facecheckInput =
+    document.getElementById('facecheck-image');
+
+const facecheckPreview =
+    document.getElementById('facecheck-preview');
+
 
 tabs.forEach((tab) => {
 
@@ -63,20 +69,28 @@ function showResponse(data) {
     }
 
     statusEl.textContent =
-        `Relatório gerado: ${data.arquivo}`;
+        data.arquivo
+            ? `Relatório gerado: ${data.arquivo}`
+            : data.mensagem || 'Operação concluída.';
 
     outputEl.textContent =
         JSON.stringify(
-            data.relatorio,
+            data.relatorio || data,
             null,
             2
         );
 
-    const links = [
-        `<a href="${data.download}">
-            Baixar JSON
-        </a>`
-    ];
+    const links = [];
+
+    if (data.download) {
+
+        links.push(
+            `<a href="${data.download}">
+                Baixar JSON
+            </a>`
+        );
+
+    }
 
     if (data.integrado) {
 
@@ -195,3 +209,109 @@ document
 
         }
     );
+
+
+if (facecheckInput && facecheckPreview) {
+
+    facecheckInput.addEventListener(
+        'change',
+        () => {
+
+            const file =
+                facecheckInput.files[0];
+
+            if (!file) {
+
+                facecheckPreview.removeAttribute('src');
+
+                facecheckPreview.style.display =
+                    'none';
+
+                return;
+
+            }
+
+            const imageUrl =
+                URL.createObjectURL(file);
+
+            facecheckPreview.src =
+                imageUrl;
+
+            facecheckPreview.style.display =
+                'block';
+
+        }
+    );
+
+}
+
+
+const facecheckForm =
+    document.getElementById(
+        'facecheck-form'
+    );
+
+
+if (facecheckForm) {
+
+    facecheckForm.addEventListener(
+        'submit',
+        async (event) => {
+
+            event.preventDefault();
+
+            const file =
+                facecheckInput.files[0];
+
+            if (!file) {
+
+                showResponse({
+                    ok: false,
+                    erro: 'Selecione uma imagem.'
+                });
+
+                return;
+
+            }
+
+            setLoading(
+                'Preparando imagem...'
+            );
+
+            const formData =
+                new FormData();
+
+            formData.append(
+                'imagem',
+                file
+            );
+
+            try {
+
+                const response =
+                    await fetch(
+                        '/api/facecheck/preparar',
+                        {
+                            method: 'POST',
+                            body: formData
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                showResponse(data);
+
+            } catch (error) {
+
+                showResponse({
+                    ok: false,
+                    erro: error.message
+                });
+
+            }
+
+        }
+    );
+
+}

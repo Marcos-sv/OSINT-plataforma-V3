@@ -1,141 +1,110 @@
-* {
-    box-sizing: border-box;
-}
-
+* { box-sizing: border-box; }
 body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f4f5f7;
-    color: #20242a;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f5f7;
+  color: #20242a;
 }
-
 .container {
-    width: min(920px, calc(100% - 32px));
-    margin: 40px auto;
+  width: min(920px, calc(100% - 32px));
+  margin: 40px auto;
 }
-
-header {
-    margin-bottom: 24px;
-}
-
-h1,
-h2 {
-    margin-top: 0;
-}
-
+header { margin-bottom: 24px; }
+h1, h2 { margin-top: 0; }
 .tabs {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 0;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 0;
 }
-
 .tab {
-    border: 1px solid #cfd4dc;
-    background: #e9ecf1;
-    padding: 12px 22px;
-    border-radius: 8px 8px 0 0;
-    cursor: pointer;
+  border: 1px solid #cfd4dc;
+  background: #e9ecf1;
+  padding: 12px 22px;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
 }
-
-.tab.active {
-    background: #fff;
-    border-bottom-color: #fff;
+.tab.active { background: #fff; border-bottom-color: #fff; }
+.panel, .results {
+  background: #fff;
+  border: 1px solid #cfd4dc;
+  padding: 24px;
 }
-
-.panel,
-.results {
-    background: #fff;
-    border: 1px solid #cfd4dc;
-    padding: 24px;
-}
-
-.panel {
-    display: none;
-}
-
-.panel.active {
-    display: block;
-}
-
-form {
-    display: grid;
-    gap: 16px;
-}
-
-label {
-    display: grid;
-    gap: 7px;
-    font-weight: 600;
-}
-
+.panel { display: none; }
+.panel.active { display: block; }
+form { display: grid; gap: 16px; }
+label { display: grid; gap: 7px; font-weight: 600; }
 input {
-    width: 100%;
-    padding: 11px 12px;
-    border: 1px solid #b9c0ca;
-    border-radius: 6px;
-    font: inherit;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #b9c0ca;
+  border-radius: 6px;
+  font: inherit;
 }
-
 button[type="submit"] {
-    width: max-content;
-    padding: 10px 18px;
-    border: 0;
-    border-radius: 6px;
-    background: #20242a;
-    color: #fff;
-    cursor: pointer;
+  width: max-content;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 6px;
+  background: #20242a;
+  color: #fff;
+  cursor: pointer;
 }
-
-.results {
-    margin-top: 20px;
-    border-radius: 8px;
-}
-
+.results { margin-top: 20px; border-radius: 8px; }
 .result-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
 }
-
-#downloads {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
+#downloads { display: flex; gap: 8px; flex-wrap: wrap; }
 #downloads a {
-    color: #20242a;
-    text-decoration: none;
-    border: 1px solid #b9c0ca;
-    border-radius: 6px;
-    padding: 8px 10px;
+  color: #20242a;
+  text-decoration: none;
+  border: 1px solid #b9c0ca;
+  border-radius: 6px;
+  padding: 8px 10px;
 }
-
-#status {
+#status { color: #5f6874; }
+pre {
+  max-height: 520px;
+  overflow: auto;
+  background: #111418;
+  color: #eef1f5;
+  padding: 16px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.facecheck-description {
+    margin-bottom: 20px;
     color: #5f6874;
 }
 
-pre {
-    max-height: 520px;
-    overflow: auto;
-    background: #111418;
-    color: #eef1f5;
-    padding: 16px;
-    border-radius: 6px;
-    white-space: pre-wrap;
-    word-break: break-word;
+.facecheck-preview-container {
+    width: 100%;
+    min-height: 40px;
 }
 
+#facecheck-preview {
+    display: none;
+    max-width: 350px;
+    max-height: 350px;
+    object-fit: contain;
+    border: 1px solid #cfd4dc;
+    border-radius: 8px;
+    padding: 6px;
+    background: #f4f5f7;
+}
+
+.facecheck-info {
+    margin-top: 20px;
+    padding: 12px;
+    border: 1px solid #cfd4dc;
+    border-radius: 6px;
+    color: #5f6874;
+    background: #f8f9fa;
+}
 @media (max-width: 640px) {
-
-    .container {
-        margin: 20px auto;
-    }
-
-    .result-header {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
+  .container { margin: 20px auto; }
+  .result-header { align-items: flex-start; flex-direction: column; }
 }

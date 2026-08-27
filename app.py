@@ -9,22 +9,38 @@ from pathlib import Path
 from threading import Lock
 
 from flask import Flask, jsonify, render_template, request, send_from_directory
+from werkzeug.utils import secure_filename
 
 BASE_DIR = Path(__file__).resolve().parent
+
 REPORTS_DIR = BASE_DIR / "relatorios"
+
+UPLOADS_DIR = BASE_DIR / "uploads"
+FACECHECK_UPLOADS_DIR = (
+    UPLOADS_DIR
+    / "facecheck"
+    / "original"
+)
+
 MAIGRET_DIR = BASE_DIR / "maigret" / "maigret"
+
 OSINT_SCRIPT = BASE_DIR / "osint.py"
+
 PROVIDERS_FILE = BASE_DIR / "providers.json"
 
 app = Flask(__name__)
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+FACECHECK_UPLOADS_DIR.mkdir(
+    parents=True,
+    exist_ok=True
+)
+
+app.config["MAX_CONTENT_LENGTH"] = (
+    10 * 1024 * 1024
+)
 
 _state_lock = Lock()
-
-_last_reports: dict[str, Path | None] = {
-    "osint": None,
-    "maigret": None,
-}
+_last_reports: dict[str, Path | None] = {"osint": None, "maigret": None}
 
 
 def safe_slug(value: str) -> str:
@@ -32,10 +48,7 @@ def safe_slug(value: str) -> str:
     return value.strip("._") or "consulta"
 
 
-def run_command(
-    command: list[str],
-    cwd: Path,
-) -> subprocess.CompletedProcess[str]:
+def run_command(command: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         command,
         cwd=cwd,
@@ -57,7 +70,6 @@ def build_integrated_report() -> Path | None:
 
     if not osint_path or not maigret_path:
         return None
-
     if not osint_path.exists() or not maigret_path.exists():
         return None
 
@@ -66,19 +78,116 @@ def build_integrated_report() -> Path | None:
         "osint": load_json(osint_path),
         "maigret": load_json(maigret_path),
     }
-
     output = REPORTS_DIR / "resultado_integrado.json"
+    output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return output
 
-    output.write_text(
-        json.dumps(
-            payload,
-            ensure_ascii=False,
-            indent=2,
-        ),
-        encoding="utf-8",
+ALLOWED_IMAGE_EXTENSIONS = {
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+}
+
+
+def allowed_image(filename: str) -> bool:
+    extension = Path(filename).suffix.lower()
+
+    return extension in ALLOWED_IMAGE_EXTENSIONS
+
+
+@app.post("/api/facecheck/preparar")
+def prepare_facecheck_image():
+
+    if "imagem" not in request.files:
+
+        return jsonify(
+            {
+                "ok": False,
+                "erro": "Nenhuma imagem enviada.",
+            }
+        ), 400
+
+
+    image = request.files["imagem"]
+
+
+    if not image.filename:
+
+        return jsonify(
+            {
+                "ok": False,
+                "erro": "Selecione uma imagem.",
+            }
+        ), 400
+
+
+    if not allowed_image(image.filename):
+
+        return jsonify(
+            {
+                "ok": False,
+                "erro": (
+                    "Formato não permitido. "
+                    "Use JPG, JPEG, PNG ou WEBP."
+                ),
+            }
+        ), 400
+
+
+    original_name = secure_filename(
+        image.filename
     )
 
-    return output
+
+    extension = (
+        Path(original_name)
+        .suffix
+        .lower()
+    )
+
+
+    stamp = datetime.now().strftime(
+        "%Y%m%d_%H%M%S_%f"
+    )
+
+
+    filename = (
+        f"facecheck_{stamp}{extension}"
+    )
+
+
+    output_path = (
+        FACECHECK_UPLOADS_DIR
+        / filename
+    )
+
+
+    image.save(output_path)
+
+
+    return jsonify(
+        {
+            "ok": True,
+
+            "arquivo": filename,
+
+            "etapa": "imagem_recebida",
+
+            "proxima_etapa":
+                "melhoria_de_imagem",
+
+            "facecheck":
+                "aguardando_integracao",
+
+            "mensagem": (
+                "Imagem recebida e salva. "
+                "O próximo passo será enviar "
+                "essa imagem ao sistema de "
+                "melhoria."
+            ),
+        }
+    )
 
 
 @app.get("/")
@@ -89,22 +198,14 @@ def index():
 @app.post("/api/osint")
 def run_osint():
     data = request.get_json(silent=True) or {}
-
     nome = str(data.get("nome") or "").strip()
     cpf = str(data.get("cpf") or "").strip()
 
     if not nome and not cpf:
-        return jsonify(
-            {
-                "ok": False,
-                "erro": "Informe nome e/ou CPF.",
-            }
-        ), 400
+        return jsonify({"ok": False, "erro": "Informe nome e/ou CPF."}), 400
 
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
     output = REPORTS_DIR / f"osint_{stamp}.json"
-
     command = [
         sys.executable,
         str(OSINT_SCRIPT),
@@ -113,46 +214,18 @@ def run_osint():
         "--output",
         str(output),
     ]
-
     if nome:
-        command.extend(
-            [
-                "--nome",
-                nome,
-            ]
-        )
-
+        command.extend(["--nome", nome])
     if cpf:
-        command.extend(
-            [
-                "--cpf",
-                cpf,
-            ]
-        )
+        command.extend(["--cpf", cpf])
 
-    result = run_command(
-        command,
-        BASE_DIR,
-    )
-
+    result = run_command(command, BASE_DIR)
     if result.returncode != 0 or not output.exists():
-        error = (
-            result.stderr
-            or result.stdout
-            or "Falha ao executar osint.py"
-        ).strip()
-
-        return jsonify(
-            {
-                "ok": False,
-                "erro": error,
-                "terminal": result.stdout,
-            }
-        ), 500
+        error = (result.stderr or result.stdout or "Falha ao executar osint.py").strip()
+        return jsonify({"ok": False, "erro": error, "terminal": result.stdout}), 500
 
     with _state_lock:
         _last_reports["osint"] = output
-
     integrated = build_integrated_report()
 
     return jsonify(
@@ -161,11 +234,7 @@ def run_osint():
             "relatorio": load_json(output),
             "arquivo": output.name,
             "download": f"/relatorios/{output.name}",
-            "integrado": (
-                f"/relatorios/{integrated.name}"
-                if integrated
-                else None
-            ),
+            "integrado": f"/relatorios/{integrated.name}" if integrated else None,
             "terminal": result.stdout,
         }
     )
@@ -174,21 +243,11 @@ def run_osint():
 @app.post("/api/maigret")
 def run_maigret():
     data = request.get_json(silent=True) or {}
-
-    username = str(
-        data.get("username") or ""
-    ).strip()
-
+    username = str(data.get("username") or "").strip()
     if not username:
-        return jsonify(
-            {
-                "ok": False,
-                "erro": "Informe um username.",
-            }
-        ), 400
+        return jsonify({"ok": False, "erro": "Informe um username."}), 400
 
     user_slug = safe_slug(username)
-
     command = [
         sys.executable,
         "-m",
@@ -201,87 +260,37 @@ def run_maigret():
         "--no-progressbar",
     ]
 
-    before = set(
-        REPORTS_DIR.glob(
-            "report_*_simple.json"
-        )
-    )
-
-    result = run_command(
-        command,
-        MAIGRET_DIR,
-    )
-
-    after = set(
-        REPORTS_DIR.glob(
-            "report_*_simple.json"
-        )
-    )
-
-    new_reports = sorted(
-        after - before,
-        key=lambda item: item.stat().st_mtime,
-        reverse=True,
-    )
+    before = set(REPORTS_DIR.glob("report_*_simple.json"))
+    result = run_command(command, MAIGRET_DIR)
+    after = set(REPORTS_DIR.glob("report_*_simple.json"))
+    new_reports = sorted(after - before, key=lambda item: item.stat().st_mtime, reverse=True)
 
     if result.returncode != 0 or not new_reports:
-        error = (
-            result.stderr
-            or result.stdout
-            or "Falha ao executar Maigret."
-        ).strip()
-
-        return jsonify(
-            {
-                "ok": False,
-                "erro": error,
-                "terminal": result.stdout,
-            }
-        ), 500
+        error = (result.stderr or result.stdout or "Falha ao executar Maigret.").strip()
+        return jsonify({"ok": False, "erro": error, "terminal": result.stdout}), 500
 
     generated = new_reports[0]
-
-    stamp = datetime.now().strftime(
-        "%Y%m%d_%H%M%S"
-    )
-
-    output = (
-        REPORTS_DIR
-        / f"maigret_{user_slug}_{stamp}.json"
-    )
-
+    # Renomeia a saída nativa para não ser sobrescrita em consultas futuras.
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output = REPORTS_DIR / f"maigret_{user_slug}_{stamp}.json"
     generated.replace(output)
 
     maigret_data = load_json(output)
-
     normalized = {
         "consulta": {
             "username": username,
-            "executado_em_utc": datetime.now(
-                timezone.utc
-            ).isoformat(),
+            "executado_em_utc": datetime.now(timezone.utc).isoformat(),
             "ferramenta": "Maigret",
         },
         "resumo": {
-            "total_perfis_encontrados": len(
-                maigret_data
-            ),
+            "total_perfis_encontrados": len(maigret_data),
         },
         "perfis": maigret_data,
     }
-
-    output.write_text(
-        json.dumps(
-            normalized,
-            ensure_ascii=False,
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
+    output.write_text(json.dumps(normalized, ensure_ascii=False, indent=2), encoding="utf-8")
 
     with _state_lock:
         _last_reports["maigret"] = output
-
     integrated = build_integrated_report()
 
     return jsonify(
@@ -290,11 +299,7 @@ def run_maigret():
             "relatorio": normalized,
             "arquivo": output.name,
             "download": f"/relatorios/{output.name}",
-            "integrado": (
-                f"/relatorios/{integrated.name}"
-                if integrated
-                else None
-            ),
+            "integrado": f"/relatorios/{integrated.name}" if integrated else None,
             "terminal": result.stdout,
         }
     )
@@ -302,16 +307,8 @@ def run_maigret():
 
 @app.get("/relatorios/<path:filename>")
 def download_report(filename: str):
-    return send_from_directory(
-        REPORTS_DIR,
-        filename,
-        as_attachment=True,
-    )
+    return send_from_directory(REPORTS_DIR, filename, as_attachment=True)
 
 
 if __name__ == "__main__":
-    app.run(
-        host="127.0.0.1",
-        port=5000,
-        debug=True,
-    )
+    app.run(host="127.0.0.1", port=5000, debug=True)
