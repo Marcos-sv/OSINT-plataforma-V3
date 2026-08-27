@@ -1,3 +1,5 @@
 ddgs==9.14.4
 requests>=2.32.0,<3
 beautifulsoup4>=4.12.3,<5
+Flask>=3.0,<4
+-e ./maigret/maigret

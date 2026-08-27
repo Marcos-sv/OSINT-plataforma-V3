@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>OSINT Plataforma</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+
+<body>
+
+<main class="container">
+
+    <header>
+        <h1>OSINT Plataforma</h1>
+        <p>
+            Escolha a ferramenta e execute a consulta.
+        </p>
+    </header>
+
+    <nav
+        class="tabs"
+        aria-label="Ferramentas"
+    >
+
+        <button
+            class="tab active"
+            data-tab="osint"
+        >
+            OSINT
+        </button>
+
+        <button
+            class="tab"
+            data-tab="maigret"
+        >
+            Maigret
+        </button>
+
+    </nav>
+
+    <section
+        id="osint"
+        class="panel active"
+    >
+
+        <h2>Busca por nome / CPF</h2>
+
+        <form id="osint-form">
+
+            <label>
+                Nome completo
+
+                <input
+                    id="nome"
+                    type="text"
+                    placeholder="Nome e sobrenome"
+                >
+            </label>
+
+            <label>
+                CPF
+
+                <input
+                    id="cpf"
+                    type="text"
+                    placeholder="000.000.000-00"
+                >
+            </label>
+
+            <button type="submit">
+                Executar OSINT
+            </button>
+
+        </form>
+
+    </section>
+
+    <section
+        id="maigret"
+        class="panel"
+    >
+
+        <h2>Busca de username</h2>
+
+        <form id="maigret-form">
+
+            <label>
+                Username
+
+                <input
+                    id="username"
+                    type="text"
+                    placeholder="usuario"
+                >
+            </label>
+
+            <button type="submit">
+                Executar Maigret
+            </button>
+
+        </form>
+
+    </section>
+
+    <section class="results">
+
+        <div class="result-header">
+
+            <h2>Resultado</h2>
+
+            <div id="downloads"></div>
+
+        </div>
+
+        <p id="status">
+            Nenhuma consulta executada.
+        </p>
+
+        <pre id="output"></pre>
+
+    </section>
+
+</main>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+
+</body>
+</html>
