@@ -330,7 +330,7 @@
       "id": "gov_portal_transparencia",
       "name": "Portal da Transparencia - Governo Federal",
       "enabled": true,
-      "kind": "ddgs",
+      "kind": "portal_transparencia",
       "backend": "duckduckgo",
       "modes": [
         "nome",
@@ -352,7 +352,10 @@
           "\"{name}\" \"{cpf_formatted}\" site:portaldatransparencia.gov.br",
           "\"{name}\" \"{cpf}\" site:portaldatransparencia.gov.br"
         ]
-      }
+      },
+      "api_url": "https://api.portaldatransparencia.gov.br/api-de-dados/pessoa-fisica",
+      "api_key_env": "PORTAL_TRANSPARENCIA_API_KEY",
+      "keep_fields": null
     },
     {
       "id": "gov_dou",
@@ -522,7 +525,9 @@
     {
       "id": "instagram_enum",
       "name": "Instagram",
-      "modes": ["nome"],
+      "modes": [
+        "nome"
+      ],
       "kind": "username_enum",
       "enabled": true,
       "url_template": "https://www.instagram.com/{username_url}/",
@@ -532,7 +537,9 @@
     {
       "id": "github_enum",
       "name": "GitHub",
-      "modes": ["nome"],
+      "modes": [
+        "nome"
+      ],
       "kind": "username_enum",
       "enabled": true,
       "url_template": "https://github.com/{username_url}",
@@ -542,7 +549,9 @@
     {
       "id": "gitlab_enum",
       "name": "GitLab",
-      "modes": ["nome"],
+      "modes": [
+        "nome"
+      ],
       "kind": "username_enum",
       "enabled": true,
       "url_template": "https://gitlab.com/{username_url}",
@@ -552,7 +561,9 @@
     {
       "id": "twitter_enum",
       "name": "Twitter/X",
-      "modes": ["nome"],
+      "modes": [
+        "nome"
+      ],
       "kind": "username_enum",
       "enabled": true,
       "url_template": "https://x.com/{username_url}",
@@ -562,7 +573,9 @@
     {
       "id": "linkedin_enum",
       "name": "LinkedIn",
-      "modes": ["nome"],
+      "modes": [
+        "nome"
+      ],
       "kind": "username_enum",
       "enabled": true,
       "url_template": "https://www.linkedin.com/in/{username_url}",
@@ -572,7 +585,9 @@
     {
       "id": "facebook_enum",
       "name": "Facebook",
-      "modes": ["nome"],
+      "modes": [
+        "nome"
+      ],
       "kind": "username_enum",
       "enabled": true,
       "url_template": "https://www.facebook.com/{username_url}",
@@ -582,7 +597,9 @@
     {
       "id": "tiktok_enum",
       "name": "TikTok",
-      "modes": ["nome"],
+      "modes": [
+        "nome"
+      ],
       "kind": "username_enum",
       "enabled": true,
       "url_template": "https://www.tiktok.com/@{username_url}",
@@ -592,7 +609,9 @@
     {
       "id": "youtube_enum",
       "name": "YouTube",
-      "modes": ["nome"],
+      "modes": [
+        "nome"
+      ],
       "kind": "username_enum",
       "enabled": true,
       "url_template": "https://www.youtube.com/@{username_url}",
@@ -602,7 +621,9 @@
     {
       "id": "stackoverflow_enum",
       "name": "Stack Overflow",
-      "modes": ["nome"],
+      "modes": [
+        "nome"
+      ],
       "kind": "username_enum",
       "enabled": true,
       "url_template": "https://stackoverflow.com/users/{username_url}",
@@ -612,7 +633,9 @@
     {
       "id": "reddit_enum",
       "name": "Reddit",
-      "modes": ["nome"],
+      "modes": [
+        "nome"
+      ],
       "kind": "username_enum",
       "enabled": true,
       "url_template": "https://www.reddit.com/user/{username_url}",
@@ -622,7 +645,9 @@
     {
       "id": "pinterest_enum",
       "name": "Pinterest",
-      "modes": ["nome"],
+      "modes": [
+        "nome"
+      ],
       "kind": "username_enum",
       "enabled": true,
       "url_template": "https://www.pinterest.com/{username_url}",
