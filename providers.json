@@ -330,32 +330,27 @@
       "id": "gov_portal_transparencia",
       "name": "Portal da Transparencia - Governo Federal",
       "enabled": true,
-      "kind": "portal_transparencia",
-      "backend": "duckduckgo",
-      "modes": [
-        "nome",
-        "cpf",
-        "nome+cpf"
-      ],
-      "queries": {
-        "nome": [
-          "\"{name}\" site:portaldatransparencia.gov.br/pessoa-fisica",
-          "\"{name}\" site:portaldatransparencia.gov.br/busca/pessoa-fisica",
-          "\"{name}\" site:portaldatransparencia.gov.br/viagens",
-          "\"{name}\" site:portaldatransparencia.gov.br/despesas"
-        ],
-        "cpf": [
-          "\"{cpf_formatted}\" site:portaldatransparencia.gov.br",
-          "\"{cpf}\" site:portaldatransparencia.gov.br"
-        ],
-        "nome+cpf": [
-          "\"{name}\" \"{cpf_formatted}\" site:portaldatransparencia.gov.br",
-          "\"{name}\" \"{cpf}\" site:portaldatransparencia.gov.br"
-        ]
+      "kind": "json_api",
+      "modes": ["nome", "cpf", "nome+cpf"],
+      "url": "https://api.portaldatransparencia.gov.br/api-de-dados/pessoas",
+      "headers": {
+        "chave-api-dados": "${PORTAL_TRANSPARENCIA_API_KEY}",
+        "Accept": "application/json"
       },
-      "api_url": "https://api.portaldatransparencia.gov.br/api-de-dados/pessoa-fisica",
-      "api_key_env": "PORTAL_TRANSPARENCIA_API_KEY",
-      "keep_fields": null
+      "params_by_mode": {
+        "nome": [{ "nome": "{name}", "pagina": 1 }],
+        "cpf": [{ "cpf": "{cpf}", "pagina": 1 }],
+        "nome+cpf": [{ "nome": "{name}", "cpf": "{cpf}", "pagina": 1 }]
+      },
+      "items_path": "$",
+      "match": {
+        "name": { "fields": ["nome"], "mode": "contains" },
+        "cpf": { "fields": ["cpf"], "mode": "contains" }
+      },
+      "title_field": "nome",
+      "keep_fields": [
+        "id", "nome", "cpf", "cpfCnpj", "siglaUF", "codigoPessoa"
+      ]
     },
     {
       "id": "gov_dou",

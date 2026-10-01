@@ -5,3 +5,4 @@ resultado.json
 /.venv-2
 packages-microsoft-prod.deb
 __pycache__/
+.env
