@@ -445,10 +445,14 @@ def provider_supports(provider: dict[str, Any], mode: str) -> bool:
 
 
 def match_rule(criteria: SearchCriteria, record: dict[str, Any], rule: dict[str, Any] | None) -> tuple[bool, bool, bool]:
-    matched_name = True if not criteria.name else False
+    ignore_name = bool((rule or {}).get("ignore_name", False))
+    matched_name = True if not criteria.name or ignore_name else False
     matched_cpf = True if not criteria.cpf else False
 
-    if criteria.name:
+    # Algumas APIs oficiais só aceitam CPF/NIS como filtro e não retornam
+    # necessariamente o nome no DTO. Nesse caso o CPF consultado identifica
+    # o registro e não devemos descartar a resposta por falta do campo nome.
+    if criteria.name and not ignore_name:
         name_rule = (rule or {}).get("name", {})
         fields = name_rule.get("fields", [])
         mode = name_rule.get("mode", "contains")
@@ -555,6 +559,14 @@ def json_api_provider(provider: dict[str, Any], criteria: SearchCriteria, args: 
     records: list[ProviderRecord] = []
     errors: list[str] = []
 
+    required_env = provider.get("required_env")
+    if required_env and not os.getenv(required_env, "").strip():
+        return ProviderResult(
+            provider_id, provider_name, "json_api", True,
+            "chave de API não configurada", [],
+            [f"Configure {required_env} no arquivo .env e reinicie a aplicação."],
+        )
+
     # params_by_mode permite várias consultas por modo (ex.: grep.app), como as queries do ddgs
     param_sets = provider.get("params_by_mode", {}).get(criteria.mode)
     if param_sets is None:
@@ -575,7 +587,14 @@ def json_api_provider(provider: dict[str, Any], criteria: SearchCriteria, args: 
         try:
             r = requests.get(url, params=params, headers=headers, timeout=args.timeout)
             if r.status_code >= 400:
-                errors.append(redact_target_cpf(f"HTTP {r.status_code} ({json.dumps(params, ensure_ascii=False)})", criteria.cpf))
+                if r.status_code in (401, 403) and required_env:
+                    detail = (
+                        f"HTTP {r.status_code}: a API recusou a chave. Confira se a chave "
+                        f"em {required_env} está ativa e se o .env foi carregado; depois reinicie a aplicação."
+                    )
+                else:
+                    detail = f"HTTP {r.status_code} ({json.dumps(params, ensure_ascii=False)})"
+                errors.append(redact_target_cpf(detail, criteria.cpf))
                 continue
             payload = r.json()
         except Exception as exc:
@@ -613,7 +632,10 @@ def json_api_provider(provider: dict[str, Any], criteria: SearchCriteria, args: 
                     except Exception as exc:
                         errors.append(f"detail {provider_name}: {exc}")
 
-            matched_name, matched_cpf, matched_all = match_rule(criteria, item, provider.get("match"))
+            match_config = dict(provider.get("match") or {})
+            if provider.get("ignore_name_for_match"):
+                match_config["ignore_name"] = True
+            matched_name, matched_cpf, matched_all = match_rule(criteria, item, match_config)
             if not matched_all:
                 continue
 

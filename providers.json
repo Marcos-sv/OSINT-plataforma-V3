@@ -328,29 +328,47 @@
     },
     {
       "id": "gov_portal_transparencia",
-      "name": "Portal da Transparencia - Governo Federal",
+      "name": "Portal da Transparência - Pessoa Física (consulta por CPF)",
       "enabled": true,
       "kind": "json_api",
-      "modes": ["nome", "cpf", "nome+cpf"],
-      "url": "https://api.portaldatransparencia.gov.br/api-de-dados/pessoas",
+      "modes": [
+        "cpf",
+        "nome+cpf"
+      ],
+      "url": "https://api.portaldatransparencia.gov.br/api-de-dados/pessoa-fisica",
+      "required_env": "PORTAL_TRANSPARENCIA_API_KEY",
       "headers": {
         "chave-api-dados": "${PORTAL_TRANSPARENCIA_API_KEY}",
         "Accept": "application/json"
       },
       "params_by_mode": {
-        "nome": [{ "nome": "{name}", "pagina": 1 }],
-        "cpf": [{ "cpf": "{cpf}", "pagina": 1 }],
-        "nome+cpf": [{ "nome": "{name}", "cpf": "{cpf}", "pagina": 1 }]
+        "cpf": [
+          {
+            "cpf": "{cpf}"
+          }
+        ],
+        "nome+cpf": [
+          {
+            "cpf": "{cpf}"
+          }
+        ]
       },
       "items_path": "$",
       "match": {
-        "name": { "fields": ["nome"], "mode": "contains" },
-        "cpf": { "fields": ["cpf"], "mode": "contains" }
+        "cpf": {
+          "fields": [
+            "cpf"
+          ]
+        }
       },
       "title_field": "nome",
       "keep_fields": [
-        "id", "nome", "cpf", "cpfCnpj", "siglaUF", "codigoPessoa"
-      ]
+        "cpf",
+        "nis",
+        "nome"
+      ],
+      "ignore_name_for_match": true,
+      "max_field_chars": 500
     },
     {
       "id": "gov_dou",

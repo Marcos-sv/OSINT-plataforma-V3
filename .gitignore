@@ -6,3 +6,4 @@ resultado.json
 packages-microsoft-prod.deb
 __pycache__/
 .env
+testar_api_portal.py
