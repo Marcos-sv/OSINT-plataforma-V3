@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import json
 import re
+import secrets
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from threading import Lock
+from threading import Event, Lock, Thread
 
 from flask import Flask, jsonify, render_template, request, send_from_directory
 from werkzeug.utils import secure_filename
@@ -40,7 +41,9 @@ app.config["MAX_CONTENT_LENGTH"] = (
 )
 
 _state_lock = Lock()
-_last_reports: dict[str, Path | None] = {"osint": None, "maigret": None}
+_bnmp_jobs_lock = Lock()
+_bnmp_jobs: dict[str, dict] = {}
+_last_reports: dict[str, Path | None] = {"osint": None, "maigret": None, "bnmp": None}
 
 
 def safe_slug(value: str) -> str:
@@ -65,22 +68,95 @@ def load_json(path: Path) -> dict:
 
 def build_integrated_report() -> Path | None:
     with _state_lock:
-        osint_path = _last_reports["osint"]
-        maigret_path = _last_reports["maigret"]
+        paths = {key: value for key, value in _last_reports.items() if value and value.exists()}
 
-    if not osint_path or not maigret_path:
-        return None
-    if not osint_path.exists() or not maigret_path.exists():
+    if len(paths) < 2:
         return None
 
-    payload = {
-        "gerado_em_utc": datetime.now(timezone.utc).isoformat(),
-        "osint": load_json(osint_path),
-        "maigret": load_json(maigret_path),
-    }
+    payload = {"gerado_em_utc": datetime.now(timezone.utc).isoformat()}
+    payload.update({key: load_json(path) for key, path in paths.items()})
     output = REPORTS_DIR / "resultado_integrado.json"
     output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     return output
+
+
+def _set_bnmp_job(job_id: str, status: str, message: str, **extra) -> None:
+    with _bnmp_jobs_lock:
+        job = _bnmp_jobs.get(job_id)
+        if job is not None:
+            job.update({"status": status, "mensagem": message, **extra})
+
+
+def _run_bnmp_job(
+    job_id: str,
+    nome: str,
+    cpf: str,
+    captcha_confirmed: Event,
+    osint_report: Path | None = None,
+) -> None:
+    try:
+        from bnmp_client import run_bnmp_public_search
+
+        report = run_bnmp_public_search(
+            nome=nome,
+            cpf=cpf,
+            captcha_confirmed=captcha_confirmed,
+            update_status=lambda status, message: _set_bnmp_job(job_id, status, message),
+        )
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output = REPORTS_DIR / f"bnmp_{stamp}_{job_id[:6]}.json"
+        output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+
+        if osint_report and osint_report.exists():
+            merged_report = load_json(osint_report)
+            merged_report.setdefault("fontes_complementares", {})["bnmp"] = report
+            osint_report.write_text(
+                json.dumps(merged_report, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            primary_report = osint_report
+        else:
+            primary_report = output
+            with _state_lock:
+                _last_reports["bnmp"] = output
+
+        integrated = build_integrated_report()
+        _set_bnmp_job(
+            job_id,
+            "concluida",
+            report["mensagem"],
+            relatorio=load_json(primary_report),
+            bnmp_relatorio=report,
+            arquivo=primary_report.name,
+            download=f"/relatorios/{primary_report.name}",
+            bnmp_download=f"/relatorios/{output.name}",
+            integrado=f"/relatorios/{integrated.name}" if integrated else None,
+        )
+    except Exception as exc:
+        message = str(exc)
+        if osint_report and osint_report.exists():
+            try:
+                merged_report = load_json(osint_report)
+                merged_report.setdefault("fontes_complementares", {})["bnmp"] = {
+                    "status": "consulta_nao_concluida",
+                    "erro": message,
+                }
+                osint_report.write_text(
+                    json.dumps(merged_report, ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+                _set_bnmp_job(
+                    job_id,
+                    "erro",
+                    message,
+                    relatorio=merged_report,
+                    arquivo=osint_report.name,
+                    download=f"/relatorios/{osint_report.name}",
+                )
+                return
+            except Exception:
+                pass
+        _set_bnmp_job(job_id, "erro", message)
 
 ALLOWED_IMAGE_EXTENSIONS = {
     ".jpg",
@@ -226,6 +302,9 @@ def run_osint():
 
     with _state_lock:
         _last_reports["osint"] = output
+        # Cada nova busca OSINT começa um conjunto novo de relatórios.
+        _last_reports["maigret"] = None
+        _last_reports["bnmp"] = None
     integrated = build_integrated_report()
 
     return jsonify(
@@ -238,6 +317,78 @@ def run_osint():
             "terminal": result.stdout,
         }
     )
+
+
+@app.post("/api/bnmp/iniciar")
+def start_bnmp_search():
+    data = request.get_json(silent=True) or {}
+    nome = str(data.get("nome") or "").strip()
+    cpf = str(data.get("cpf") or "").strip()
+    if not nome and not cpf:
+        return jsonify({"ok": False, "erro": "Informe nome e/ou CPF para consultar o BNMP."}), 400
+
+    osint_filename = str(data.get("osint_arquivo") or "").strip()
+    osint_report = None
+    if osint_filename:
+        if Path(osint_filename).name != osint_filename or not osint_filename.startswith("osint_"):
+            return jsonify({"ok": False, "erro": "Relatório OSINT inválido."}), 400
+        candidate = REPORTS_DIR / osint_filename
+        if not candidate.is_file():
+            return jsonify({"ok": False, "erro": "Relatório OSINT não encontrado."}), 404
+        osint_report = candidate
+
+    with _bnmp_jobs_lock:
+        active = next(
+            (job_id for job_id, job in _bnmp_jobs.items()
+             if job.get("status") not in {"concluida", "erro", "expirada"}),
+            None,
+        )
+        if active:
+            return jsonify({"ok": False, "erro": "Já existe uma consulta BNMP em andamento."}), 409
+
+        job_id = secrets.token_urlsafe(12)
+        captcha_confirmed = Event()
+        _bnmp_jobs[job_id] = {
+            "status": "iniciando",
+            "mensagem": "Preparando o navegador do BNMP.",
+            "captcha_confirmed": captcha_confirmed,
+            "criada_em": datetime.now(timezone.utc).isoformat(),
+        }
+
+    Thread(
+        target=_run_bnmp_job,
+        args=(job_id, nome, cpf, captcha_confirmed, osint_report),
+        daemon=True,
+    ).start()
+    return jsonify({"ok": True, "tarefa_id": job_id, "status": "iniciando"}), 202
+
+
+@app.post("/api/bnmp/<job_id>/continuar")
+def continue_bnmp_search(job_id: str):
+    with _bnmp_jobs_lock:
+        job = _bnmp_jobs.get(job_id)
+        if not job:
+            return jsonify({"ok": False, "erro": "Consulta BNMP não encontrada."}), 404
+        if job.get("status") != "aguardando_captcha":
+            return jsonify({"ok": False, "erro": "A consulta ainda não está aguardando a confirmação do CAPTCHA."}), 409
+        job["status"] = "continuando"
+        job["mensagem"] = "Continuando a consulta pela interface pública do BNMP."
+        event = job["captcha_confirmed"]
+        event.set()
+    return jsonify({"ok": True, "status": "continuando"}), 202
+
+
+@app.get("/api/bnmp/<job_id>")
+def get_bnmp_search_status(job_id: str):
+    with _bnmp_jobs_lock:
+        job = _bnmp_jobs.get(job_id)
+        if not job:
+            return jsonify({"ok": False, "erro": "Consulta BNMP não encontrada."}), 404
+        public_job = {
+            key: value for key, value in job.items()
+            if key != "captcha_confirmed" and not key.startswith("_")
+        }
+    return jsonify({"ok": True, **public_job})
 
 
 @app.post("/api/maigret")

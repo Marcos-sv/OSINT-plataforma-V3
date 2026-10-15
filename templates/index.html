@@ -90,14 +90,25 @@
                 >
             </label>
 
+            <p class="bnmp-description">
+                Esta busca também consulta o BNMP com estes mesmos dados.
+                Resolva o CAPTCHA quando o portal abrir e confirme aqui na aba OSINT.
+            </p>
+
             <button type="submit">
-                Executar OSINT
+                Executar OSINT + BNMP
             </button>
 
         </form>
 
-    </section>
+        <div id="bnmp-handoff" class="bnmp-handoff" hidden>
+            <p id="bnmp-handoff-message"></p>
+            <button id="bnmp-continue" type="button">
+                Já resolvi o CAPTCHA — continuar busca
+            </button>
+        </div>
 
+    </section>
 
     <!-- MAIGRET -->
 

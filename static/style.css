@@ -104,6 +104,30 @@ pre {
     color: #5f6874;
     background: #f8f9fa;
 }
+.bnmp-description, .bnmp-note { color: #5f6874; line-height: 1.5; }
+.bnmp-handoff {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid #d5a324;
+  border-radius: 8px;
+  background: #fff9e6;
+}
+.bnmp-handoff button {
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 6px;
+  background: #20242a;
+  color: #fff;
+  cursor: pointer;
+}
+.bnmp-handoff button:disabled { opacity: .6; cursor: wait; }
+.bnmp-note {
+  margin-top: 18px;
+  padding: 12px;
+  border: 1px solid #cfd4dc;
+  border-radius: 6px;
+  background: #f8f9fa;
+}
 @media (max-width: 640px) {
   .container { margin: 20px auto; }
   .result-header { align-items: flex-start; flex-direction: column; }

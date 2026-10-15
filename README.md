@@ -13,6 +13,7 @@ Os arquivos e diretórios mais importantes para executar o sistema são:
 OSINT-plataforma-V3/
 ├── app.py
 ├── osint.py
+├── bnmp_client.py
 ├── providers.json
 ├── requirements.txt
 ├── maigret/
@@ -24,6 +25,8 @@ OSINT-plataforma-V3/
 app.py: inicia a aplicação Flask e a interface web.
 
 osint.py: mecanismo principal das consultas OSINT.
+
+bnmp_client.py: consulta pontual de mandados públicos do BNMP pela interface oficial.
 
 providers.json: configuração das fontes utilizadas pelo OSINT.
 
@@ -99,6 +102,7 @@ requests
 beautifulsoup4
 Flask
 Maigret
+Playwright
 
 O Maigret é instalado diretamente da cópia existente no projeto:
 
@@ -147,6 +151,16 @@ python app.py
 Depois acesse:
 
 http://127.0.0.1:5000
+
+Primeira consulta ao BNMP
+
+Na aba OSINT, informe nome e/ou CPF e clique em “Executar OSINT + BNMP”. O BNMP usa os mesmos dados da busca. Quando o portal oficial abrir, resolva o CAPTCHA e clique em “Já resolvi o CAPTCHA — continuar busca” na própria aba OSINT. O resultado BNMP será gravado em `fontes_complementares.bnmp` no mesmo arquivo JSON OSINT.
+
+Se o navegador Chromium não estiver instalado pelo Playwright, rode uma vez:
+
+python -m playwright install chromium
+
+O relatório inclui os registros e textos visíveis retornados pela consulta. Se o portal não mostrar um resultado que o app consiga confirmar, o relatório marcará a consulta como inconclusiva; isso não deve ser lido como “não consta”. O BNMP consulta mandados e medidas disponíveis publicamente, não substitui certidões ou uma busca geral de processos.
 
 Encerrando o programa
 
@@ -211,7 +225,7 @@ osint_20260923_103000.json
 maigret_usuario_20260923_103500.json
 resultado_integrado.json
 
-Quando existe um relatório OSINT e um relatório Maigret disponíveis na mesma execução do servidor, o sistema também pode gerar:
+Quando há pelo menos dois relatórios entre OSINT e Maigret na execução atual do servidor, o sistema também pode gerar:
 
 resultado_integrado.json
 
